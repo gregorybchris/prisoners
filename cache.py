@@ -1,5 +1,6 @@
 from sqlitedict import SqliteDict
 
+
 class ExperimentCache:
     def __init__(self, filename):
         self._db = SqliteDict(filename, autocommit=True)
@@ -18,4 +19,8 @@ class ExperimentCache:
         self._db[n_boxes] = box_dict
 
     def fetch_results(self, n_boxes, n_checks):
+        if n_boxes not in self._db:
+            raise ValueError(f"No results for n_boxes={n_boxes}")
+        elif n_checks not in self._db[n_boxes]:
+            raise ValueError(f"No results for n_checks={n_checks}")
         return self._db[n_boxes][n_checks]

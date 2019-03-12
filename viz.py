@@ -8,7 +8,8 @@ from cache import ExperimentCache
 
 def grid_search(boxes_opts, checks_opts, n_iterations, cache=None):
     probas_grid = np.zeros((len(boxes_opts), len(checks_opts)))
-    finds_grid = np.zeros((len(boxes_opts), len(checks_opts), n_iterations), dtype=int)
+    finds_grid = np.zeros((len(boxes_opts), len(checks_opts), n_iterations),
+                          dtype=int)
     for b, n_boxes in enumerate(boxes_opts):
         for c, n_checks in enumerate(checks_opts):
             exp = Experiment(n_boxes, n_checks, cache=cache)
@@ -46,12 +47,16 @@ def facet(boxes_opts, checks_opts, finds_grid):
                 }
                 samples.append(sample)
     df = pd.DataFrame(samples)
-    facets = sns.FacetGrid(df, row='n_boxes', col='n_checks', palette='Set1')
-    facets.map(plt.hist, "n_finds", bins=20, color="b")
+    facets = sns.FacetGrid(df, row='n_boxes', col='n_checks',
+                           margin_titles=True)
+    facets.map(plt.hist, "n_finds", bins=20, color="#4CB391")
+    plt.gcf().canvas.set_window_title('100 Prisoners Problem')
     plt.show()
 
+
 def contour(boxes_opts, checks_opts, probas_grid):
-    plt.contourf(checks_opts, boxes_opts, probas_grid, 15)
+    plt.contourf(checks_opts, boxes_opts, probas_grid, 15,
+                 cmap='Purples')
     plt.colorbar()
     plt.title('Probability space for finding your number')
     plt.xlabel('Number of checks allowed')
@@ -59,15 +64,17 @@ def contour(boxes_opts, checks_opts, probas_grid):
     plt.gcf().canvas.set_window_title('100 Prisoners Problem')
     plt.show()
 
+
 if __name__ == '__main__':
-    n_iterations = 100
-    boxes_opts = [90, 100, 110, 120, 130]
+    sns.set()
+    n_iterations = 200
+    boxes_opts = [80, 90, 100, 110, 120]
     checks_opts = [20, 30, 40, 50, 60, 70]
     cache = ExperimentCache('./cache.db')
-    plot_from_cache(cache, 90, 20)
-
     probas_grid, finds_grid = grid_search(boxes_opts, checks_opts,
                                           n_iterations, cache=cache)
 
-    facet(boxes_opts, checks_opts, finds_grid)
+    # plot_from_cache(cache, 100, 50)
+
+    # facet(boxes_opts, checks_opts, finds_grid)
     contour(boxes_opts, checks_opts, probas_grid)
