@@ -20,13 +20,10 @@ class Experiment:
         return all_n_finds
 
     def _run_iteration(self):
-        boxes = self._create_boxes()
+        boxes = np.random.permutation(self._n_boxes)
         cycles = self._preprocess(boxes)
         n_finds = np.sum([len(c) for c in cycles if len(c) <= self._n_checks])
         return n_finds
-
-    def _create_boxes(self):
-        return np.random.permutation(self._n_boxes)
 
     def _preprocess(self, boxes):
         visited = set()
