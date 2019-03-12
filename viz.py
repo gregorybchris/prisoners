@@ -1,60 +1,62 @@
-import numpy as np
-import seaborn as sns
-import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+
 from experiment import Experiment
 from cache import ExperimentCache
 
 
-def grid_search(boxes_opts, checks_opts, n_iterations, cache=None):
-    probas_grid = np.zeros((len(boxes_opts), len(checks_opts)))
-    finds_grid = np.zeros((len(boxes_opts), len(checks_opts), n_iterations),
-                          dtype=int)
-    for b, n_boxes in enumerate(boxes_opts):
-        for c, n_checks in enumerate(checks_opts):
-            exp = Experiment(n_boxes, n_checks, cache=cache)
-            all_n_finds = exp.run(n_iterations=n_iterations)
-            win_rate = np.sum(all_n_finds == n_boxes) / n_iterations
-            probas_grid[b, c] = win_rate
-            finds_grid[b, c, :] = all_n_finds
-    return probas_grid, finds_grid
+def run_getter(n_boxes, n_checks, cache=None, n_iterations=1):
+    exp = Experiment(n_boxes, n_checks, cache=cache)
+    dist = exp.run(n_iterations=n_iterations)
+    win_rate = dist[n_boxes] / n_iterations if n_boxes in dist else 0
+    return dist, win_rate
 
 
-def visualize_simple():
-    exp = Experiment(100, 50)
-    all_n_finds = exp.run(n_iterations=10000)
+def cache_getter(n_boxes, n_checks, cache=None):
+    dist = cache.fetch(n_boxes, n_checks)
+    win_rate = dist[n_boxes] / sum(dist.values()) if n_boxes in dist else 0
+    return dist, win_rate
+
+
+def grid_search(getter_func, boxes_opts, checks_opts, **kwargs):
+    dist_grid = [[getter_func(n_boxes, n_checks, **kwargs)[0]
+                 for n_checks in checks_opts] for n_boxes in boxes_opts]
+    probas_grid = [[getter_func(n_boxes, n_checks, **kwargs)[1]
+                   for n_checks in checks_opts] for n_boxes in boxes_opts]
+    return dist_grid, probas_grid
+
+
+def plot_dist(dist):
+    all_n_finds = [n_finds for n_finds, count in dist.items()
+                   for _ in range(count)]
     sns.distplot(all_n_finds, kde=False, bins=20)
     plt.show()
 
 
-def plot_from_cache(cache, n_boxes, n_checks):
-    res = cache.fetch_results(n_boxes, n_checks)
-    dist = [n_finds for n_finds, count in res.items() for _ in range(count)]
-    sns.distplot(dist, kde=False, bins=20)
-    plt.show()
-
-
-def facet(boxes_opts, checks_opts, finds_grid):
+def plot_dist_grid(boxes_opts, checks_opts, dist_grid):
     samples = []
     for b, n_boxes in enumerate(boxes_opts):
         for c, n_checks in enumerate(checks_opts):
-            all_n_finds = finds_grid[b, c]
-            for n_finds in all_n_finds:
-                sample = {
-                    'n_boxes': n_boxes,
-                    'n_checks': n_checks,
-                    'n_finds': n_finds
-                }
-                samples.append(sample)
+            dist = dist_grid[b][c]
+            for n_finds, count in dist.items():
+                for _ in range(count):
+                    sample = {
+                        'n_boxes': n_boxes,
+                        'n_checks': n_checks,
+                        'n_finds': n_finds
+                    }
+                    samples.append(sample)
     df = pd.DataFrame(samples)
-    facets = sns.FacetGrid(df, row='n_boxes', col='n_checks',
-                           margin_titles=True)
-    facets.map(plt.hist, "n_finds", bins=20, color="#4CB391")
+    facet_grid = sns.FacetGrid(df, row='n_boxes', col='n_checks',
+                               margin_titles=True)
+    facet_grid.map(plt.hist, "n_finds", bins=20, color="#4CB391")
     plt.gcf().canvas.set_window_title('100 Prisoners Problem')
     plt.show()
 
 
-def contour(boxes_opts, checks_opts, probas_grid):
+def plot_contour(boxes_opts, checks_opts, probas_grid):
     plt.contourf(checks_opts, boxes_opts, probas_grid, 15,
                  cmap='Purples')
     plt.colorbar()
@@ -67,14 +69,27 @@ def contour(boxes_opts, checks_opts, probas_grid):
 
 if __name__ == '__main__':
     sns.set()
-    n_iterations = 200
-    boxes_opts = [80, 90, 100, 110, 120]
-    checks_opts = [20, 30, 40, 50, 60, 70]
+
+    boxes_opts = np.linspace(80, 200, 10, dtype=int)
+    checks_opts = np.linspace(10, 70, 6, dtype=int)
+
     cache = ExperimentCache('./cache.db')
-    probas_grid, finds_grid = grid_search(boxes_opts, checks_opts,
-                                          n_iterations, cache=cache)
 
-    # plot_from_cache(cache, 100, 50)
+    # Grid search by running many experiments
+    # for every combination of parameters
+    n_iterations = 100
+    dist_grid, probas_grid = grid_search(run_getter, boxes_opts,
+                                         checks_opts, cache=cache,
+                                         n_iterations=n_iterations)
 
-    # facet(boxes_opts, checks_opts, finds_grid)
-    contour(boxes_opts, checks_opts, probas_grid)
+    # Grid search by pulling results from the cache
+    # dist_grid, probas_grid = grid_search(cache_getter, boxes_opts,
+    #                                      checks_opts, cache=cache)
+
+    # dist = cache.fetch(100, 50)
+    # p_win = dist[100] / sum(dist.values())
+    # print(f"Probability of winning: {p_win}")
+    # plot_dist(dist)
+
+    plot_dist_grid(boxes_opts, checks_opts, dist_grid)
+    plot_contour(boxes_opts, checks_opts, probas_grid)

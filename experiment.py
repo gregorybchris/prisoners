@@ -12,12 +12,18 @@ class Experiment:
         self._n_checks = n_checks
 
     def run(self, n_iterations=1):
-        all_n_finds = [self._run_iteration() for _ in range(n_iterations)]
-        all_n_finds = np.array(all_n_finds, dtype=int)
+        n_finds_dict = dict()
+        for _ in range(n_iterations):
+            n_finds = self._run_iteration()
+            if n_finds not in n_finds_dict:
+                n_finds_dict[n_finds] = 0
+            n_finds_dict[n_finds] += 1
+
         if self._cache is not None:
-            self._cache.cache_results(self._n_boxes, self._n_checks,
-                                      all_n_finds)
-        return all_n_finds
+            self._cache.cache(self._n_boxes, self._n_checks,
+                              n_finds_dict)
+
+        return n_finds_dict
 
     def _run_iteration(self):
         boxes = np.random.permutation(self._n_boxes)
@@ -55,5 +61,5 @@ class Experiment:
 
 if __name__ == '__main__':
     exp = Experiment(100, 50)
-    all_n_finds = exp.run(n_iterations=10).tolist()
+    all_n_finds = exp.run(n_iterations=10)
     print(all_n_finds)
