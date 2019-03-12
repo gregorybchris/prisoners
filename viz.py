@@ -12,17 +12,17 @@ def grid_search(boxes_opts, checks_opts, n_iterations, cache=None):
     for b, n_boxes in enumerate(boxes_opts):
         for c, n_checks in enumerate(checks_opts):
             exp = Experiment(n_boxes, n_checks, cache=cache)
-            n_finds = exp.run(n_iterations=n_iterations)
-            win_rate = np.sum(n_finds == n_boxes) / n_iterations
+            all_n_finds = exp.run(n_iterations=n_iterations)
+            win_rate = np.sum(all_n_finds == n_boxes) / n_iterations
             probas_grid[b, c] = win_rate
-            finds_grid[b, c, :] = n_finds
+            finds_grid[b, c, :] = all_n_finds
     return probas_grid, finds_grid
 
 
 def visualize_simple():
     exp = Experiment(100, 50)
-    n_finds = exp.run(n_iterations=10000)
-    sns.distplot(n_finds, kde=False, bins=20)
+    all_n_finds = exp.run(n_iterations=10000)
+    sns.distplot(all_n_finds, kde=False, bins=20)
     plt.show()
 
 
@@ -37,8 +37,8 @@ def facet(boxes_opts, checks_opts, finds_grid):
     samples = []
     for b, n_boxes in enumerate(boxes_opts):
         for c, n_checks in enumerate(checks_opts):
-            finds = finds_grid[b, c]
-            for n_finds in finds:
+            all_n_finds = finds_grid[b, c]
+            for n_finds in all_n_finds:
                 sample = {
                     'n_boxes': n_boxes,
                     'n_checks': n_checks,
@@ -65,8 +65,9 @@ if __name__ == '__main__':
     checks_opts = [20, 30, 40, 50, 60, 70]
     cache = ExperimentCache('./cache.db')
     plot_from_cache(cache, 90, 20)
-    # probas_grid, finds_grid = grid_search(boxes_opts, checks_opts,
-    #                                       n_iterations, cache=cache)
 
-    # facet(boxes_opts, checks_opts, finds_grid)
-    # contour(boxes_opts, checks_opts, probas_grid)
+    probas_grid, finds_grid = grid_search(boxes_opts, checks_opts,
+                                          n_iterations, cache=cache)
+
+    facet(boxes_opts, checks_opts, finds_grid)
+    contour(boxes_opts, checks_opts, probas_grid)

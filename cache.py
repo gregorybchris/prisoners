@@ -3,7 +3,7 @@ from sqlitedict import SqliteDict
 class ExperimentCache:
     def __init__(self, filename):
         self._db = SqliteDict(filename, autocommit=True)
-        
+
     def cache_results(self, n_boxes, n_checks, results):
         if n_boxes not in self._db:
             self._db[n_boxes] = dict()

@@ -19,8 +19,8 @@ class Experiment:
     def _run_iteration(self):
         boxes = self._create_boxes()
         cycle_map, cycles = self._preprocess(boxes)
-        n_finds = np.sum([len(c) for c in cycles if len(c) <= self._n_checks])
-        return n_finds
+        all_n_finds = np.sum([len(c) for c in cycles if len(c) <= self._n_checks])
+        return all_n_finds
     
     def _create_boxes(self):
         return np.random.permutation(self._n_boxes)
@@ -55,3 +55,9 @@ class Experiment:
     
     def get_n_checks(self):
         return self._n_checks
+
+
+if __name__ == '__main__':
+    exp = Experiment(100, 50)
+    all_n_finds = exp.run(n_iterations=10).tolist()
+    print(all_n_finds)
